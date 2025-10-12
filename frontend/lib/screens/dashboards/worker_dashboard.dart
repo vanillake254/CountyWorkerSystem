@@ -742,7 +742,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  authProvider.user?.fullName ?? 'Worker',
+                  authProvider.currentUser?.fullName ?? 'Worker',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -755,7 +755,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                     const Icon(Icons.business, color: Colors.white70, size: 16),
                     const SizedBox(width: 6),
                     Text(
-                      authProvider.user?.departmentName ?? 'No Department',
+                      authProvider.currentUser?.departmentName ?? 'No Department',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
