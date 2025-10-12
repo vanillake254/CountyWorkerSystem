@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,16 +15,17 @@ class ExitConfirmationWrapper extends StatelessWidget {
   Future<bool> _showExitDialog(BuildContext context) async {
     final shouldExit = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Exit App'),
         content: const Text('Are you sure you want to exit?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Exit'),
           ),
@@ -35,18 +37,21 @@ class ExitConfirmationWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
+    return WillPopScope(
+      onWillPop: () async {
+        if (!canExit) return false;
         
-        if (canExit) {
-          final shouldExit = await _showExitDialog(context);
-          if (shouldExit) {
-            // Exit the app properly
+        final shouldExit = await _showExitDialog(context);
+        if (shouldExit) {
+          // Use platform-specific exit
+          if (Platform.isAndroid) {
             SystemNavigator.pop();
+          } else if (Platform.isIOS) {
+            exit(0);
           }
+          return false;
         }
+        return false;
       },
       child: child,
     );
