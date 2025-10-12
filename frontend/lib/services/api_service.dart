@@ -222,11 +222,30 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  Future<Map<String, dynamic>> deleteTask(int taskId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/tasks/$taskId'),
+      headers: await _getHeaders(),
+    );
+
+    return jsonDecode(response.body);
+  }
+
   // PAYMENT ENDPOINTS
   Future<Map<String, dynamic>> getPayments() async {
     final response = await http.get(
       Uri.parse('$baseUrl/api/payments'),
       headers: await _getHeaders(),
+    );
+
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> createPayment(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/payments'),
+      headers: await _getHeaders(),
+      body: jsonEncode(data),
     );
 
     return jsonDecode(response.body);
