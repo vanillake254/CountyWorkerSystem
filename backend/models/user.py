@@ -11,6 +11,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='applicant')  # applicant, worker, supervisor, admin
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
+    salary = db.Column(db.Float, nullable=True)  # Monthly salary assigned by admin
+    salary_balance = db.Column(db.Float, nullable=True, default=0.0)  # Remaining unpaid salary
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -38,6 +40,8 @@ class User(db.Model):
             'role': self.role,
             'department_id': self.department_id,
             'department_name': self.department.name if self.department else None,
+            'salary': self.salary,
+            'salary_balance': self.salary_balance,
             'created_at': self.created_at.isoformat()
         }
     

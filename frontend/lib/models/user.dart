@@ -5,6 +5,8 @@ class User {
   final String role;
   final int? departmentId;
   final String? departmentName;
+  final double? salary;
+  final double? salaryBalance;
 
   User({
     required this.id,
@@ -13,6 +15,8 @@ class User {
     required this.role,
     this.departmentId,
     this.departmentName,
+    this.salary,
+    this.salaryBalance,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -23,6 +27,8 @@ class User {
       role: json['role'],
       departmentId: json['department_id'],
       departmentName: json['department_name'],
+      salary: json['salary']?.toDouble(),
+      salaryBalance: json['salary_balance']?.toDouble(),
     );
   }
 
@@ -34,6 +40,8 @@ class User {
       'role': role,
       'department_id': departmentId,
       'department_name': departmentName,
+      'salary': salary,
+      'salary_balance': salaryBalance,
     };
   }
 

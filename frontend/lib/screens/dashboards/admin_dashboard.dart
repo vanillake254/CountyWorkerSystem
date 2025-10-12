@@ -4,6 +4,7 @@ import '../../models/application.dart';
 import '../../models/job.dart';
 import '../../models/payment.dart';
 import '../../models/user.dart' as models;
+import '../../models/department.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/vanilla_branding.dart';
@@ -21,6 +22,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   List<Job> _jobs = [];
   List<Payment> _payments = [];
   List<models.User> _users = [];
+  List<Department> _departments = [];
   bool _isLoading = true;
   int _selectedIndex = 0;
   
@@ -49,8 +51,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _loadJobs(),
       _loadPayments(),
       _loadUsers(),
+      _loadDepartments(),
     ]);
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadDepartments() async {
+    try {
+      final response = await _apiService.getDepartments();
+      if (response['status'] == 'success') {
+        setState(() {
+          _departments = (response['departments'] as List)
+              .map((dept) => Department.fromJson(dept))
+              .toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading departments: $e');
+    }
   }
 
   Future<void> _loadApplications() async {
@@ -137,6 +155,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _updateApplicationStatus(Application application, String status) async {
+    // If accepting, show dialog to collect salary and department
+    if (status == 'accepted') {
+      await _showAcceptApplicationDialog(application);
+      return;
+    }
+    
+    // For rejection, proceed directly
     try {
       final response = await _apiService.updateApplication(application.id, status);
       if (mounted) {
@@ -148,6 +173,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           );
           _loadApplications();
+          _loadUsers(); // Refresh users list
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -166,9 +192,125 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
+  Future<void> _showAcceptApplicationDialog(Application application) async {
+    final salaryController = TextEditingController();
+    int? selectedDepartmentId;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Accept Application'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Applicant: ${application.applicantName}'),
+                Text('Job: ${application.jobTitle}'),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: salaryController,
+                  decoration: const InputDecoration(
+                    labelText: 'Monthly Salary *',
+                    hintText: 'e.g., 25000',
+                    prefixText: 'KES ',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  value: selectedDepartmentId,
+                  decoration: const InputDecoration(
+                    labelText: 'Department *',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _departments.map((dept) {
+                    return DropdownMenuItem(
+                      value: dept.id,
+                      child: Text(dept.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedDepartmentId = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (salaryController.text.isEmpty || selectedDepartmentId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please fill all required fields')),
+                  );
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              child: const Text('Accept'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true && salaryController.text.isNotEmpty && selectedDepartmentId != null) {
+      try {
+        final salary = double.parse(salaryController.text);
+        final response = await _apiService.updateApplication(
+          application.id,
+          'accepted',
+          salary: salary,
+          departmentId: selectedDepartmentId,
+        );
+        
+        if (mounted) {
+          if (response['status'] == 'success') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Application accepted successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _loadApplications();
+            _loadUsers(); // Refresh users list
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Failed to accept application'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _updatePaymentStatus(Payment payment, String status) async {
+    // If marking as paid, show dialog to confirm/edit amount
+    if (status == 'paid') {
+      await _showProcessPaymentDialog(payment);
+      return;
+    }
+    
     try {
-      final response = await _apiService.updatePayment(payment.id, status);
+      final response = await _apiService.updatePayment(payment.id, status: status);
       if (mounted) {
         if (response['status'] == 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -178,6 +320,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           );
           _loadPayments();
+          _loadUsers(); // Refresh to update salary balances
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -192,6 +335,122 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      }
+    }
+  }
+
+  Future<void> _showProcessPaymentDialog(Payment payment) async {
+    final amountController = TextEditingController(text: payment.amount.toString());
+    
+    // Find worker to show salary balance
+    final worker = _users.firstWhere(
+      (u) => u.id == payment.workerId,
+      orElse: () => models.User(
+        id: 0,
+        fullName: 'Unknown',
+        email: '',
+        role: 'worker',
+      ),
+    );
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Process Payment'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Worker: ${payment.workerName}'),
+              if (payment.taskTitle != null) Text('Task: ${payment.taskTitle}'),
+              const SizedBox(height: 8),
+              if (worker.salary != null) ...[
+                Text('Monthly Salary: KES ${worker.salary!.toStringAsFixed(2)}'),
+                Text(
+                  'Current Balance: KES ${worker.salaryBalance?.toStringAsFixed(2) ?? '0.00'}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: (worker.salaryBalance ?? 0) > 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              TextField(
+                controller: amountController,
+                decoration: const InputDecoration(
+                  labelText: 'Payment Amount *',
+                  hintText: 'e.g., 5000',
+                  prefixText: 'KES ',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 8),
+              if (worker.salaryBalance != null && amountController.text.isNotEmpty)
+                Text(
+                  'New Balance: KES ${(worker.salaryBalance! - (double.tryParse(amountController.text) ?? 0)).toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (amountController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter payment amount')),
+                );
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Process Payment'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && amountController.text.isNotEmpty) {
+      try {
+        final amount = double.parse(amountController.text);
+        final response = await _apiService.updatePayment(
+          payment.id,
+          amount: amount,
+          status: 'paid',
+        );
+        
+        if (mounted) {
+          if (response['status'] == 'success') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Payment processed successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _loadPayments();
+            _loadUsers(); // Refresh to update salary balances
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Failed to process payment'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
       }
     }
   }

@@ -159,35 +159,44 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   }
 
   Future<void> _updateTaskProgress(Task task) async {
-    final statuses = ['pending', 'in_progress', 'completed'];
-    final currentIndex = statuses.indexOf(task.progressStatus);
-    
-    final selected = await showDialog<String>(
+    // Only allow marking incomplete tasks as completed
+    if (!task.isIncomplete) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Task is already ${task.progressStatus}'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Update Task Progress'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: statuses.map((status) {
-            return RadioListTile<String>(
-              title: Text(status.replaceAll('_', ' ').toUpperCase()),
-              value: status,
-              groupValue: task.progressStatus,
-              onChanged: (value) => Navigator.pop(context, value),
-            );
-          }).toList(),
-        ),
+        title: const Text('Mark Task Complete'),
+        content: Text('Mark "${task.title}" as completed?\n\nYour supervisor will review and approve it.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Mark Complete'),
+          ),
+        ],
       ),
     );
 
-    if (selected != null && selected != task.progressStatus) {
+    if (confirm == true) {
       try {
-        final response = await _apiService.updateTask(task.id, selected);
+        final response = await _apiService.updateTask(task.id, 'completed');
         if (mounted) {
           if (response['status'] == 'success') {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Task updated successfully!'),
+                content: Text('Task marked as completed! Waiting for supervisor approval.'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -233,15 +242,21 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
           Color statusColor;
           IconData statusIcon;
           
-          if (task.isPending) {
+          if (task.isIncomplete) {
             statusColor = Colors.orange;
             statusIcon = Icons.pending_actions;
-          } else if (task.isInProgress) {
+          } else if (task.isCompleted) {
             statusColor = Colors.blue;
-            statusIcon = Icons.play_circle;
-          } else {
+            statusIcon = Icons.assignment_turned_in;
+          } else if (task.isApproved) {
             statusColor = Colors.green;
             statusIcon = Icons.check_circle;
+          } else if (task.isDenied) {
+            statusColor = Colors.red;
+            statusIcon = Icons.cancel;
+          } else {
+            statusColor = Colors.grey;
+            statusIcon = Icons.help_outline;
           }
 
           return Card(
@@ -316,15 +331,87 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _updateTaskProgress(task),
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Update Progress'),
+                  if (task.completedAt != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Completed: ${_formatDate(task.completedAt!)}',
+                          style: const TextStyle(fontSize: 12, color: Colors.green),
+                        ),
+                      ],
                     ),
-                  ),
+                  ],
+                  if (task.approvedAt != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          task.isApproved ? Icons.verified : Icons.cancel,
+                          size: 16,
+                          color: task.isApproved ? Colors.green : Colors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${task.isApproved ? "Approved" : "Denied"}: ${_formatDate(task.approvedAt!)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: task.isApproved ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (task.supervisorComment != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.comment, size: 16, color: Colors.red),
+                              SizedBox(width: 4),
+                              Text(
+                                'Supervisor Comment:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            task.supervisorComment!,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (task.isIncomplete)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _updateTaskProgress(task),
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text('Mark as Complete'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -358,9 +445,68 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
       onRefresh: _loadPayments,
       child: Column(
         children: [
+          // Salary Balance Card
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              final user = authProvider.currentUser;
+              if (user?.salary != null) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Card(
+                    color: Colors.blue[50],
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Monthly Salary',
+                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'KES ${user!.salary!.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text(
+                                'Balance',
+                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'KES ${user.salaryBalance?.toStringAsFixed(2) ?? '0.00'}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: (user.salaryBalance ?? 0) > 0 ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           // Summary cards
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Row(
               children: [
                 Expanded(

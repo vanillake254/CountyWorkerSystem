@@ -113,7 +113,7 @@ def create_task():
             supervisor_id=user_id,
             start_date=start_date,
             end_date=end_date,
-            progress_status='pending'
+            progress_status='incomplete'
         )
         
         db.session.add(task)
@@ -156,20 +156,46 @@ def update_task(task_id):
         
         data = request.get_json()
         
-        # Update progress status
-        if 'progress_status' in data:
-            valid_statuses = ['pending', 'in_progress', 'completed']
-            if data['progress_status'] not in valid_statuses:
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
-                }), 400
-            
-            task.progress_status = data['progress_status']
-            
-            # Set completed_at when task is completed
-            if data['progress_status'] == 'completed':
-                task.completed_at = datetime.utcnow()
+        # Workers can only mark tasks as completed
+        if user.role == 'worker':
+            if 'progress_status' in data:
+                if data['progress_status'] == 'completed':
+                    task.progress_status = 'completed'
+                    task.completed_at = datetime.utcnow()
+                else:
+                    return jsonify({
+                        'status': 'error',
+                        'message': 'Workers can only mark tasks as completed'
+                    }), 400
+        
+        # Supervisors can approve or deny completed tasks
+        elif user.role == 'supervisor' and task.supervisor_id == user_id:
+            if 'progress_status' in data:
+                valid_statuses = ['incomplete', 'completed', 'approved', 'denied']
+                if data['progress_status'] not in valid_statuses:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
+                    }), 400
+                
+                task.progress_status = data['progress_status']
+                
+                # Set approved_at when task is approved or denied
+                if data['progress_status'] in ['approved', 'denied']:
+                    task.approved_at = datetime.utcnow()
+                    if 'supervisor_comment' in data:
+                        task.supervisor_comment = data['supervisor_comment']
+        
+        # Admins can update any status
+        elif user.role == 'admin':
+            if 'progress_status' in data:
+                task.progress_status = data['progress_status']
+                if data['progress_status'] == 'completed':
+                    task.completed_at = datetime.utcnow()
+                elif data['progress_status'] in ['approved', 'denied']:
+                    task.approved_at = datetime.utcnow()
+                    if 'supervisor_comment' in data:
+                        task.supervisor_comment = data['supervisor_comment']
         
         # Supervisors/admins can update other fields
         if user.role in ['admin', 'supervisor']:

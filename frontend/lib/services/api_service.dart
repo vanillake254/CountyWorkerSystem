@@ -154,11 +154,20 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  Future<Map<String, dynamic>> updateApplication(int applicationId, String status) async {
+  Future<Map<String, dynamic>> updateApplication(
+    int applicationId,
+    String status, {
+    double? salary,
+    int? departmentId,
+  }) async {
     final response = await http.put(
       Uri.parse('$baseUrl/api/applications/$applicationId'),
       headers: await _getHeaders(),
-      body: jsonEncode({'status': status}),
+      body: jsonEncode({
+        'status': status,
+        if (salary != null) 'salary': salary,
+        if (departmentId != null) 'department_id': departmentId,
+      }),
     );
 
     return jsonDecode(response.body);
@@ -196,11 +205,18 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  Future<Map<String, dynamic>> updateTask(int taskId, String progressStatus) async {
+  Future<Map<String, dynamic>> updateTask(
+    int taskId,
+    String progressStatus, {
+    String? supervisorComment,
+  }) async {
     final response = await http.put(
       Uri.parse('$baseUrl/api/tasks/$taskId'),
       headers: await _getHeaders(),
-      body: jsonEncode({'progress_status': progressStatus}),
+      body: jsonEncode({
+        'progress_status': progressStatus,
+        if (supervisorComment != null) 'supervisor_comment': supervisorComment,
+      }),
     );
 
     return jsonDecode(response.body);
@@ -216,11 +232,18 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  Future<Map<String, dynamic>> updatePayment(int paymentId, String status) async {
+  Future<Map<String, dynamic>> updatePayment(
+    int paymentId, {
+    double? amount,
+    String? status,
+  }) async {
     final response = await http.put(
       Uri.parse('$baseUrl/api/payments/$paymentId'),
       headers: await _getHeaders(),
-      body: jsonEncode({'status': status}),
+      body: jsonEncode({
+        if (amount != null) 'amount': amount,
+        if (status != null) 'status': status,
+      }),
     );
 
     return jsonDecode(response.body);

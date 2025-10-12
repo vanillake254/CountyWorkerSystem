@@ -280,9 +280,10 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
       );
     }
 
-    final pendingTasks = _tasks.where((t) => t.isPending).length;
-    final inProgressTasks = _tasks.where((t) => t.isInProgress).length;
+    final incompleteTasks = _tasks.where((t) => t.isIncomplete).length;
     final completedTasks = _tasks.where((t) => t.isCompleted).length;
+    final approvedTasks = _tasks.where((t) => t.isApproved).length;
+    final deniedTasks = _tasks.where((t) => t.isDenied).length;
 
     return Column(
       children: [
@@ -293,8 +294,8 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
             children: [
               Expanded(
                 child: _buildSummaryCard(
-                  'Pending',
-                  pendingTasks.toString(),
+                  'Incomplete',
+                  incompleteTasks.toString(),
                   Colors.orange,
                   Icons.pending_actions,
                 ),
@@ -302,17 +303,17 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
               const SizedBox(width: 8),
               Expanded(
                 child: _buildSummaryCard(
-                  'In Progress',
-                  inProgressTasks.toString(),
+                  'Completed',
+                  completedTasks.toString(),
                   Colors.blue,
-                  Icons.play_circle,
+                  Icons.assignment_turned_in,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildSummaryCard(
-                  'Completed',
-                  completedTasks.toString(),
+                  'Approved',
+                  approvedTasks.toString(),
                   Colors.green,
                   Icons.check_circle,
                 ),
@@ -332,12 +333,16 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
                 final task = _tasks[index];
                 
                 Color statusColor;
-                if (task.isPending) {
+                if (task.isIncomplete) {
                   statusColor = Colors.orange;
-                } else if (task.isInProgress) {
+                } else if (task.isCompleted) {
                   statusColor = Colors.blue;
-                } else {
+                } else if (task.isApproved) {
                   statusColor = Colors.green;
+                } else if (task.isDenied) {
+                  statusColor = Colors.red;
+                } else {
+                  statusColor = Colors.grey;
                 }
 
                 return Card(
@@ -397,6 +402,69 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
                                 ),
                               ],
                             ),
+                            if (task.completedAt != null) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Completed: ${_formatDate(task.completedAt!)}',
+                                    style: const TextStyle(fontSize: 12, color: Colors.green),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (task.supervisorComment != null) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Supervisor Comment:',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(task.supervisorComment!, style: const TextStyle(fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            // Show approve/deny buttons for completed tasks
+                            if (task.isCompleted) ...[
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _showDenyTaskDialog(task),
+                                      icon: const Icon(Icons.cancel, color: Colors.red),
+                                      label: const Text('Deny'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => _approveTask(task),
+                                      icon: const Icon(Icons.check_circle),
+                                      label: const Text('Approve'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -446,6 +514,131 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
       return dateStr;
+    }
+  }
+
+  Future<void> _approveTask(Task task) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Approve Task'),
+        content: Text('Approve task "${task.title}" completed by ${task.workerName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Approve'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final response = await _apiService.updateTask(task.id, 'approved');
+        if (mounted) {
+          if (response['status'] == 'success') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Task approved successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _loadTasks();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Failed to approve task'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showDenyTaskDialog(Task task) async {
+    final commentController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Deny Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Deny task "${task.title}" by ${task.workerName}?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: commentController,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                hintText: 'Explain why the task is denied...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Deny'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      try {
+        final response = await _apiService.updateTask(
+          task.id,
+          'denied',
+          supervisorComment: commentController.text.isNotEmpty ? commentController.text : null,
+        );
+        
+        if (mounted) {
+          if (response['status'] == 'success') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Task denied'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            _loadTasks();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Failed to deny task'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
     }
   }
 

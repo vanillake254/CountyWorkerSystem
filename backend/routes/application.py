@@ -139,15 +139,21 @@ def update_application(application_id):
         application.status = data['status']
         application.reviewed_at = datetime.utcnow()
         
-        # If accepted, update user role to worker
+        # If accepted, update user role to worker and assign salary + department
         if data['status'] == 'accepted':
+            # Validate required fields for acceptance
+            if 'salary' not in data or 'department_id' not in data:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Salary and department are required when accepting application'
+                }), 400
+            
             applicant = User.query.get(application.applicant_id)
             if applicant:
                 applicant.role = 'worker'
-                # Assign to job's department
-                job = Job.query.get(application.job_id)
-                if job:
-                    applicant.department_id = job.department_id
+                applicant.department_id = data['department_id']
+                applicant.salary = float(data['salary'])
+                applicant.salary_balance = float(data['salary'])  # Initial balance equals salary
         
         db.session.commit()
         

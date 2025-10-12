@@ -150,6 +150,10 @@ def update_payment(payment_id):
         
         data = request.get_json()
         
+        # Update amount if provided (before marking as paid)
+        if 'amount' in data:
+            payment.amount = float(data['amount'])
+        
         if 'status' in data:
             valid_statuses = ['unpaid', 'paid']
             if data['status'] not in valid_statuses:
@@ -158,14 +162,17 @@ def update_payment(payment_id):
                     'message': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
                 }), 400
             
-            payment.status = data['status']
+            # When marking as paid, deduct from worker's salary balance
+            if data['status'] == 'paid' and payment.status != 'paid':
+                worker = User.query.get(payment.worker_id)
+                if worker:
+                    # Deduct payment amount from salary balance
+                    if worker.salary_balance is None:
+                        worker.salary_balance = worker.salary if worker.salary else 0.0
+                    worker.salary_balance -= payment.amount
+                    payment.paid_at = datetime.utcnow()
             
-            # Set paid_at when marked as paid
-            if data['status'] == 'paid':
-                payment.paid_at = datetime.utcnow()
-        
-        if 'amount' in data:
-            payment.amount = float(data['amount'])
+            payment.status = data['status']
         
         db.session.commit()
         

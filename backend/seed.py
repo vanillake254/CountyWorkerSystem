@@ -73,7 +73,9 @@ def seed_database():
             full_name='Peter Worker',
             email='worker@county.go.ke',
             role='worker',
-            department_id=1
+            department_id=1,
+            salary=25000.00,
+            salary_balance=25000.00
         )
         worker1.set_password('password')
         db.session.add(worker1)
@@ -82,7 +84,9 @@ def seed_database():
             full_name='Jane Worker',
             email='worker2@county.go.ke',
             role='worker',
-            department_id=2
+            department_id=2,
+            salary=28000.00,
+            salary_balance=28000.00
         )
         worker2.set_password('password')
         db.session.add(worker2)
@@ -179,7 +183,7 @@ def seed_database():
                 description='Clean and maintain Main Street from 1st Avenue to 5th Avenue',
                 assigned_to=worker1.id,
                 supervisor_id=supervisor1.id,
-                progress_status='in_progress',
+                progress_status='incomplete',
                 start_date=datetime.utcnow(),
                 end_date=datetime.utcnow() + timedelta(days=7)
             ),
@@ -198,7 +202,7 @@ def seed_database():
                 description='Regular weekly maintenance of assigned street sections',
                 assigned_to=worker1.id,
                 supervisor_id=supervisor1.id,
-                progress_status='pending',
+                progress_status='incomplete',
                 start_date=datetime.utcnow() + timedelta(days=1),
                 end_date=datetime.utcnow() + timedelta(days=8)
             )

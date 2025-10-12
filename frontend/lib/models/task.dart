@@ -11,6 +11,8 @@ class Task {
   final String endDate;
   final String createdAt;
   final String? completedAt;
+  final String? approvedAt;
+  final String? supervisorComment;
 
   Task({
     required this.id,
@@ -25,6 +27,8 @@ class Task {
     required this.endDate,
     required this.createdAt,
     this.completedAt,
+    this.approvedAt,
+    this.supervisorComment,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -41,10 +45,13 @@ class Task {
       endDate: json['end_date'],
       createdAt: json['created_at'],
       completedAt: json['completed_at'],
+      approvedAt: json['approved_at'],
+      supervisorComment: json['supervisor_comment'],
     );
   }
 
-  bool get isPending => progressStatus == 'pending';
-  bool get isInProgress => progressStatus == 'in_progress';
+  bool get isIncomplete => progressStatus == 'incomplete';
   bool get isCompleted => progressStatus == 'completed';
+  bool get isApproved => progressStatus == 'approved';
+  bool get isDenied => progressStatus == 'denied';
 }
