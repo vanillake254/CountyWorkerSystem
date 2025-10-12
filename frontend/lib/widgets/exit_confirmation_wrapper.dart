@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class ExitConfirmationWrapper extends StatefulWidget {
+class ExitConfirmationWrapper extends StatelessWidget {
   final Widget child;
   final bool canExit;
 
@@ -12,14 +12,7 @@ class ExitConfirmationWrapper extends StatefulWidget {
     this.canExit = true,
   });
 
-  @override
-  State<ExitConfirmationWrapper> createState() => _ExitConfirmationWrapperState();
-}
-
-class _ExitConfirmationWrapperState extends State<ExitConfirmationWrapper> {
-  DateTime? _lastPressedAt;
-
-  Future<void> _showExitDialog() async {
+  Future<bool> _showExitDialog(BuildContext context) async {
     final shouldExit = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -39,25 +32,27 @@ class _ExitConfirmationWrapperState extends State<ExitConfirmationWrapper> {
         ],
       ),
     );
-    
-    if (shouldExit == true) {
-      // Exit the app
-      if (Platform.isAndroid || Platform.isIOS) {
-        SystemChannels.platform.invokeMethod('SystemNavigator.pop');
-      }
-    }
+    return shouldExit ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        if (!widget.canExit) return false;
+        if (!canExit) return false;
         
-        await _showExitDialog();
+        // Show dialog and wait for user response
+        final shouldExit = await _showExitDialog(context);
+        
+        // Only exit if user confirmed
+        if (shouldExit) {
+          SystemNavigator.pop();
+        }
+        
+        // Always return false to prevent default back behavior
         return false;
       },
-      child: widget.child,
+      child: child,
     );
   }
 }
