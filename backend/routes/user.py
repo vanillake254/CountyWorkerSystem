@@ -89,9 +89,40 @@ def update_user(user_id):
                     'status': 'error',
                     'message': f'Invalid role. Must be one of: {", ".join(valid_roles)}'
                 }), 400
+            
+            # If changing to supervisor, check if department already has a supervisor
+            if data['role'] == 'supervisor' and user.department_id:
+                existing_supervisor = User.query.filter_by(
+                    role='supervisor',
+                    department_id=user.department_id
+                ).filter(User.id != user_id).first()
+                
+                if existing_supervisor:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Department already has a supervisor: {existing_supervisor.full_name}'
+                    }), 400
+            
             user.role = data['role']
+        
         if 'department_id' in data:
+            # If user is or will be a supervisor, check if new department already has one
+            if user.role == 'supervisor' or (data.get('role') == 'supervisor'):
+                existing_supervisor = User.query.filter_by(
+                    role='supervisor',
+                    department_id=data['department_id']
+                ).filter(User.id != user_id).first()
+                
+                if existing_supervisor:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Department already has a supervisor: {existing_supervisor.full_name}'
+                    }), 400
+            
             user.department_id = data['department_id']
+        
+        if 'salary' in data:
+            user.salary = float(data['salary'])
         
         db.session.commit()
         

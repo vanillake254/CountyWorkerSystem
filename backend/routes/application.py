@@ -148,9 +148,23 @@ def update_application(application_id):
                     'message': 'Salary and department are required when accepting application'
                 }), 400
             
+            # Check if accepting as supervisor and department already has one
+            if 'role' in data and data['role'] == 'supervisor':
+                existing_supervisor = User.query.filter_by(
+                    role='supervisor',
+                    department_id=data['department_id']
+                ).first()
+                
+                if existing_supervisor:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Department already has a supervisor: {existing_supervisor.full_name}'
+                    }), 400
+            
             applicant = User.query.get(application.applicant_id)
             if applicant:
-                applicant.role = 'worker'
+                # Default to worker role unless specified
+                applicant.role = data.get('role', 'worker')
                 applicant.department_id = data['department_id']
                 applicant.salary = float(data['salary'])
                 applicant.salary_balance = float(data['salary'])  # Initial balance equals salary
