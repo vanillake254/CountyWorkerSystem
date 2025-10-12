@@ -15,13 +15,45 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  late AuthProvider _authProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _authProvider = AuthProvider();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Log out when app is paused (closed/backgrounded)
+    if (state == AppLifecycleState.paused || 
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
+      _authProvider.logout();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    return ChangeNotifierProvider.value(
+      value: _authProvider,
       child: MaterialApp(
         title: 'County Worker Platform',
         debugShowCheckedModeBanner: false,
