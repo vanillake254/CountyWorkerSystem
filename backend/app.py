@@ -23,7 +23,15 @@ def create_app(config_name='development'):
     app.config.from_object(config[config_name])
     
     # Initialize extensions
-    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+    CORS(app, resources={
+        r"/*": {
+            "origins": [
+                "https://county-worker-platform.web.app",
+                "https://county-worker-platform.firebaseapp.com",
+                "http://localhost:8080"
+            ]
+        }
+    }, supports_credentials=True)
     init_db(app)
     init_jwt(app)
     
