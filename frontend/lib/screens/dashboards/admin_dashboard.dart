@@ -8,6 +8,7 @@ import '../../models/department.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/vanilla_branding.dart';
+import '../../widgets/exit_confirmation_wrapper.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -942,45 +943,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
         body = _buildDashboardOverview();
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-        
-        // If not on overview tab, go back to overview
-        if (_selectedIndex != 0) {
-          setState(() {
-            _selectedIndex = 0;
-          });
-          return;
-        }
-        
-        // If on overview tab, show exit confirmation
-        final shouldExit = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Exit App'),
-            content: const Text('Are you sure you want to exit?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Exit'),
-              ),
-            ],
-          ),
-        );
-        
-        if (shouldExit == true && mounted) {
-          // Exit the app
-          Navigator.of(context).pop();
-        }
-      },
-      child: Scaffold(
+    return ExitConfirmationWrapper(
+      canExit: _selectedIndex == 0,
+      child: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) async {
+          if (didPop) return;
+          
+          // If not on overview tab, go back to overview
+          if (_selectedIndex != 0) {
+            setState(() {
+              _selectedIndex = 0;
+            });
+          }
+        },
+        child: Scaffold(
         appBar: AppBar(
           title: const Text('Admin Dashboard'),
           actions: [
@@ -1047,6 +1024,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             label: 'Users',
           ),
         ],
+      ),
       ),
       ),
     );
