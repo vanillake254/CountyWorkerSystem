@@ -160,6 +160,57 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     }
   }
 
+  Future<void> _deleteApplication(Application application) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Withdraw Application'),
+        content: const Text('Are you sure you want to withdraw this application?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Withdraw'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final response = await _apiService.deleteApplication(application.id);
+        if (mounted) {
+          if (response['status'] == 'success') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Application withdrawn successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _loadJobs();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Failed to withdraw application'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _updateTaskProgress(Task task) async {
     // Only allow marking incomplete tasks as completed
     if (!task.isIncomplete) {
@@ -857,28 +908,54 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                   ],
                   
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: (hasApplied && !application.isRejected) || !job.isOpen
-                          ? null
-                          : () => _applyForJob(job),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: (hasApplied && application.isRejected)
-                            ? Colors.orange
-                            : null,
-                      ),
-                      child: Text(
-                        hasApplied
-                            ? application.isRejected
-                                ? 'Reapply'
-                                : application.status.toUpperCase()
-                            : job.isOpen
-                                ? 'Apply Now'
-                                : 'Closed',
+                  // Show delete button for pending applications
+                  if (hasApplied && application.isPending) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _deleteApplication(application),
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            label: const Text('Withdraw'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: null,
+                            child: const Text('PENDING'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (hasApplied && !application.isRejected) || !job.isOpen
+                            ? null
+                            : () => _applyForJob(job),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: (hasApplied && application.isRejected)
+                              ? Colors.orange
+                              : null,
+                        ),
+                        child: Text(
+                          hasApplied
+                              ? application.isRejected
+                                  ? 'Reapply'
+                                  : application.status.toUpperCase()
+                              : job.isOpen
+                                  ? 'Apply Now'
+                                  : 'Closed',
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

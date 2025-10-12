@@ -173,6 +173,16 @@ def update_application(application_id):
                 applicant.department_id = data['department_id']
                 applicant.salary = float(data['salary'])
                 applicant.salary_balance = float(data['salary'])  # Initial balance equals salary
+                
+                # Auto-reject all other pending applications from this applicant
+                other_applications = Application.query.filter_by(
+                    applicant_id=application.applicant_id,
+                    status='pending'
+                ).filter(Application.id != application_id).all()
+                
+                for other_app in other_applications:
+                    other_app.status = 'rejected'
+                    other_app.reviewed_at = datetime.utcnow()
         
         db.session.commit()
         

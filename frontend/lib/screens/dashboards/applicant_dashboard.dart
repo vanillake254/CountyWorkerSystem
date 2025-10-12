@@ -123,6 +123,58 @@ class _ApplicantDashboardState extends State<ApplicantDashboard> {
     }
   }
 
+  Future<void> _deleteApplication(Application application) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Withdraw Application'),
+        content: Text('Are you sure you want to withdraw your application for ${application.jobTitle}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Withdraw'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final response = await _apiService.deleteApplication(application.id);
+        if (mounted) {
+          if (response['status'] == 'success') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Application withdrawn successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _loadApplications();
+            _loadJobs();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Failed to withdraw application'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildJobsList() {
     if (_isLoadingJobs) {
       return const Center(child: CircularProgressIndicator());
@@ -253,42 +305,64 @@ class _ApplicantDashboardState extends State<ApplicantDashboard> {
 
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
-            child: ListTile(
-              leading: Icon(statusIcon, color: statusColor, size: 40),
-              title: Text(
-                application.jobTitle ?? 'Unknown Job',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text(application.department ?? 'Unknown Department'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Applied: ${_formatDate(application.appliedAt)}',
-                    style: const TextStyle(fontSize: 12),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(statusIcon, color: statusColor, size: 40),
+                  title: Text(
+                    application.jobTitle ?? 'Unknown Job',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(application.department ?? 'Unknown Department'),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Applied: ${_formatDate(application.appliedAt)}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      application.status.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                // Add delete button for pending applications
+                if (application.isPending) ...[
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _deleteApplication(application),
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        label: const Text('Withdraw Application'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  application.status.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              ],
             ),
           );
         },

@@ -78,6 +78,13 @@ def create_department():
                     'status': 'error',
                     'message': 'Invalid supervisor ID'
                 }), 404
+            
+            # Check if supervisor already has a department
+            if supervisor.department_id:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Supervisor {supervisor.full_name} is already assigned to another department'
+                }), 400
         
         # Create department
         department = Department(
@@ -137,6 +144,13 @@ def update_department(department_id):
                         'status': 'error',
                         'message': 'Invalid supervisor ID'
                     }), 404
+                
+                # Check if supervisor already has a different department
+                if supervisor.department_id and supervisor.department_id != department_id:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Supervisor {supervisor.full_name} is already assigned to another department'
+                    }), 400
             department.supervisor_id = data['supervisor_id']
         
         db.session.commit()

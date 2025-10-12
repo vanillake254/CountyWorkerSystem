@@ -173,6 +173,15 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  Future<Map<String, dynamic>> deleteApplication(int applicationId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/applications/$applicationId'),
+      headers: await _getHeaders(),
+    );
+
+    return jsonDecode(response.body);
+  }
+
   // TASK ENDPOINTS
   Future<Map<String, dynamic>> getTasks() async {
     final response = await http.get(
