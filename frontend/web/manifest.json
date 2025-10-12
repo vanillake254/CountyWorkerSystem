@@ -1,11 +1,11 @@
 {
-    "name": "county_worker_platform",
-    "short_name": "county_worker_platform",
+    "name": "County Worker Platform",
+    "short_name": "County Worker",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#3B5998",
+    "theme_color": "#3B5998",
+    "description": "County Government Worker Registration and Assignment Platform",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

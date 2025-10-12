@@ -313,4 +313,44 @@ class ApiService {
 
     return jsonDecode(response.body);
   }
+
+  Future<Map<String, dynamic>> deleteUser(int userId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/users/$userId'),
+      headers: await _getHeaders(),
+    );
+
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/users/change-password'),
+      headers: await _getHeaders(),
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      }),
+    );
+
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> resetUserPassword({
+    required int userId,
+    required String newPassword,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/users/$userId/reset-password'),
+      headers: await _getHeaders(),
+      body: jsonEncode({
+        'new_password': newPassword,
+      }),
+    );
+
+    return jsonDecode(response.body);
+  }
 }

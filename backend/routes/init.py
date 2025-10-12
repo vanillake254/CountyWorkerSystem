@@ -12,7 +12,7 @@ def initialize_database():
     """One-time endpoint to initialize database with test data"""
     try:
         # Check if admin already exists
-        existing_admin = User.query.filter_by(email='hr@county.go.ke').first()
+        existing_admin = User.query.filter_by(email='admin@county.go.ke').first()
         if existing_admin:
             return jsonify({
                 'status': 'error',
@@ -36,7 +36,7 @@ def initialize_database():
         users_data = [
             {
                 'full_name': 'Admin User',
-                'email': 'hr@county.go.ke',
+                'email': 'admin@county.go.ke',
                 'password': 'password',
                 'role': 'admin',
                 'department_id': departments[0].id
@@ -99,7 +99,7 @@ def initialize_database():
             'status': 'success',
             'message': 'Database initialized successfully',
             'credentials': {
-                'admin': {'email': 'hr@county.go.ke', 'password': 'password'},
+                'admin': {'email': 'admin@county.go.ke', 'password': 'password'},
                 'supervisor': {'email': 'sup@county.go.ke', 'password': 'password'},
                 'worker': {'email': 'worker@county.go.ke', 'password': 'password'},
                 'applicant': {'email': 'applicant@county.go.ke', 'password': 'password'}

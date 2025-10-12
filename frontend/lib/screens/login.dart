@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/auth_provider.dart';
 import 'signup.dart';
 import '../widgets/vanilla_branding.dart';
@@ -62,10 +63,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo/Icon
-                  Icon(
-                    Icons.account_balance,
-                    size: 80,
-                    color: Theme.of(context).primaryColor,
+                  SvgPicture.asset(
+                    'assets/images/logo.svg',
+                    width: 120,
+                    height: 120,
                   ),
                   const SizedBox(height: 16),
                   

@@ -577,6 +577,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
         title: const Text('Admin Dashboard'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.lock),
+            tooltip: 'Change Password',
+            onPressed: _showChangePasswordDialog,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               final confirm = await showDialog<bool>(
@@ -704,6 +709,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ],
               ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.lock_reset, color: Colors.orange),
+                    tooltip: 'Reset Password',
+                    onPressed: () => _resetUserPassword(user),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    tooltip: 'Delete User',
+                    onPressed: () => _deleteUser(user),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -724,5 +744,200 @@ class _AdminDashboardState extends State<AdminDashboard> {
       default:
         return Colors.grey;
     }
+  }
+
+  Future<void> _deleteUser(models.User user) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete User'),
+        content: Text('Are you sure you want to delete ${user.fullName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final response = await _apiService.deleteUser(user.id);
+        if (response['status'] == 'success' && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['message'])),
+          );
+          _loadUsers();
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['message'] ?? 'Failed to delete user')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Your Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: currentPasswordController,
+              decoration: const InputDecoration(labelText: 'Current Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: newPasswordController,
+              decoration: const InputDecoration(labelText: 'New Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              decoration: const InputDecoration(labelText: 'Confirm New Password'),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (newPasswordController.text != confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Passwords do not match')),
+                );
+                return;
+              }
+
+              if (newPasswordController.text.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password must be at least 6 characters')),
+                );
+                return;
+              }
+
+              try {
+                final response = await _apiService.changePassword(
+                  currentPassword: currentPasswordController.text,
+                  newPassword: newPasswordController.text,
+                );
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(response['message'])),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Change Password'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _resetUserPassword(models.User user) {
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Reset Password for ${user.fullName}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: newPasswordController,
+              decoration: const InputDecoration(labelText: 'New Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              decoration: const InputDecoration(labelText: 'Confirm New Password'),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (newPasswordController.text != confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Passwords do not match')),
+                );
+                return;
+              }
+
+              if (newPasswordController.text.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password must be at least 6 characters')),
+                );
+                return;
+              }
+
+              try {
+                final response = await _apiService.resetUserPassword(
+                  userId: user.id,
+                  newPassword: newPasswordController.text,
+                );
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(response['message'])),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Reset Password'),
+          ),
+        ],
+      ),
+    );
   }
 }

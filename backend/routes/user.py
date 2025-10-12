@@ -107,3 +107,138 @@ def update_user(user_id):
             'status': 'error',
             'message': str(e)
         }), 500
+
+@user_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+@role_required('admin')
+def delete_user(user_id):
+    """Delete user (admin only)"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        # Prevent admin from deleting themselves
+        if current_user_id == user_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'Cannot delete your own account'
+            }), 400
+        
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({
+                'status': 'error',
+                'message': 'User not found'
+            }), 404
+        
+        db.session.delete(user)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'User {user.full_name} deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@user_bp.route('/users/change-password', methods=['PUT'])
+@jwt_required()
+def change_password():
+    """Change current user's password"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({
+                'status': 'error',
+                'message': 'User not found'
+            }), 404
+        
+        data = request.get_json()
+        
+        if not data.get('current_password') or not data.get('new_password'):
+            return jsonify({
+                'status': 'error',
+                'message': 'Current password and new password are required'
+            }), 400
+        
+        # Verify current password
+        if not user.check_password(data['current_password']):
+            return jsonify({
+                'status': 'error',
+                'message': 'Current password is incorrect'
+            }), 400
+        
+        # Validate new password
+        if len(data['new_password']) < 6:
+            return jsonify({
+                'status': 'error',
+                'message': 'New password must be at least 6 characters long'
+            }), 400
+        
+        # Set new password
+        user.set_password(data['new_password'])
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Password changed successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@user_bp.route('/users/<int:user_id>/reset-password', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+def reset_user_password(user_id):
+    """Admin reset user password (no old password required)"""
+    try:
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({
+                'status': 'error',
+                'message': 'User not found'
+            }), 404
+        
+        data = request.get_json()
+        
+        if not data.get('new_password'):
+            return jsonify({
+                'status': 'error',
+                'message': 'New password is required'
+            }), 400
+        
+        # Validate new password
+        if len(data['new_password']) < 6:
+            return jsonify({
+                'status': 'error',
+                'message': 'New password must be at least 6 characters long'
+            }), 400
+        
+        # Set new password
+        user.set_password(data['new_password'])
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Password reset successfully for {user.full_name}'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
