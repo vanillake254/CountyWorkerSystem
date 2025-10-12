@@ -131,6 +131,11 @@ def update_user(user_id):
         if 'salary' in data:
             user.salary = float(data['salary'])
         
+        if 'password' in data:
+            # Admin can reset user password without old password
+            from werkzeug.security import generate_password_hash
+            user.password = generate_password_hash(data['password'])
+        
         db.session.commit()
         
         return jsonify({

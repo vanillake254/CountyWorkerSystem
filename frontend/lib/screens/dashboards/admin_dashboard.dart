@@ -1190,6 +1190,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       text: user.salary?.toString() ?? '',
     );
     final paymentAmountController = TextEditingController();
+    final newPasswordController = TextEditingController();
     int? selectedDepartmentId = user.departmentId;
 
     await showDialog(
@@ -1205,6 +1206,77 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 // User Info
                 Text('Email: ${user.email}'),
                 Text('Role: ${user.role.toUpperCase()}'),
+                const Divider(height: 24),
+                
+                // Password Reset
+                const Text(
+                  'Reset Password',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newPasswordController,
+                  decoration: const InputDecoration(
+                    labelText: 'New Password',
+                    hintText: 'Enter new password for user',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    if (newPasswordController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a new password')),
+                      );
+                      return;
+                    }
+                    
+                    if (newPasswordController.text.length < 6) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Password must be at least 6 characters')),
+                      );
+                      return;
+                    }
+                    
+                    try {
+                      final response = await _apiService.updateUser(
+                        user.id,
+                        {'password': newPasswordController.text},
+                      );
+                      
+                      if (mounted && response['status'] == 'success') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password reset successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        newPasswordController.clear();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(response['message'] ?? 'Failed to reset password'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.vpn_key),
+                  label: const Text('Reset Password'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                ),
                 const Divider(height: 24),
                 
                 // Salary Management (for workers and supervisors)
