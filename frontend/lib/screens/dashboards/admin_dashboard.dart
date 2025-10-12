@@ -1148,9 +1148,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.lock_reset, color: Colors.orange),
-                    tooltip: 'Reset Password',
-                    onPressed: () => _resetUserPassword(user),
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    tooltip: 'Manage User',
+                    onPressed: () => _showUserManagementDialog(user),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
@@ -1159,6 +1159,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ],
               ),
+              onTap: () => _showUserManagementDialog(user),
             ),
           );
         },
@@ -1182,6 +1183,242 @@ class _AdminDashboardState extends State<AdminDashboard> {
       default:
         return Colors.grey;
     }
+  }
+
+  Future<void> _showUserManagementDialog(models.User user) async {
+    final salaryController = TextEditingController(
+      text: user.salary?.toString() ?? '',
+    );
+    final paymentAmountController = TextEditingController();
+    int? selectedDepartmentId = user.departmentId;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Manage ${user.fullName}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User Info
+                Text('Email: ${user.email}'),
+                Text('Role: ${user.role.toUpperCase()}'),
+                const Divider(height: 24),
+                
+                // Salary Management (for workers only)
+                if (user.role == 'worker') ...[
+                  const Text(
+                    'Salary Management',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: salaryController,
+                    decoration: const InputDecoration(
+                      labelText: 'Monthly Salary',
+                      prefixText: 'KES ',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 8),
+                  if (user.salaryBalance != null)
+                    Text(
+                      'Current Balance: KES ${user.salaryBalance!.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: user.salaryBalance! > 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (salaryController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter salary amount')),
+                        );
+                        return;
+                      }
+                      
+                      try {
+                        final salary = double.parse(salaryController.text);
+                        final response = await _apiService.updateUser(
+                          user.id,
+                          {'salary': salary},
+                        );
+                        
+                        if (mounted && response['status'] == 'success') {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Salary updated successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          _loadUsers();
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.save),
+                    label: const Text('Update Salary'),
+                  ),
+                  const Divider(height: 24),
+                ],
+                
+                // Department Management (for workers and supervisors)
+                if (user.role == 'worker' || user.role == 'supervisor') ...[
+                  const Text(
+                    'Department',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    value: selectedDepartmentId,
+                    decoration: const InputDecoration(
+                      labelText: 'Department',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _departments.map((dept) {
+                      return DropdownMenuItem(
+                        value: dept.id,
+                        child: Text(dept.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedDepartmentId = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (selectedDepartmentId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please select a department')),
+                        );
+                        return;
+                      }
+                      
+                      try {
+                        final response = await _apiService.updateUser(
+                          user.id,
+                          {'department_id': selectedDepartmentId},
+                        );
+                        
+                        if (mounted && response['status'] == 'success') {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Department updated successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          _loadUsers();
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.business),
+                    label: const Text('Update Department'),
+                  ),
+                  const Divider(height: 24),
+                ],
+                
+                // Payment (for workers only)
+                if (user.role == 'worker') ...[
+                  const Text(
+                    'Make Payment',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: paymentAmountController,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Amount',
+                      prefixText: 'KES ',
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter amount to pay',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (paymentAmountController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter payment amount')),
+                        );
+                        return;
+                      }
+                      
+                      try {
+                        final amount = double.parse(paymentAmountController.text);
+                        
+                        // Create payment record
+                        final response = await _apiService.createPayment({
+                          'worker_id': user.id,
+                          'amount': amount,
+                          'description': 'Direct payment from admin',
+                        });
+                        
+                        if (mounted && response['status'] == 'success') {
+                          // Immediately mark as paid
+                          final paymentId = response['payment']['id'];
+                          await _apiService.updatePayment(
+                            paymentId,
+                            amount: amount,
+                            status: 'paid',
+                          );
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Payment processed successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          _loadUsers();
+                          _loadPayments();
+                          Navigator.pop(context);
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.payment),
+                    label: const Text('Process Payment'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteUser(models.User user) async {

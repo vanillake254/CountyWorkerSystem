@@ -734,7 +734,17 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
         itemCount: _jobs.length,
         itemBuilder: (context, index) {
           final job = _jobs[index];
-          final hasApplied = _applications.any((app) => app.jobId == job.id && app.jobId != null);
+          final application = _applications.firstWhere(
+            (app) => app.jobId == job.id,
+            orElse: () => Application(
+              id: 0,
+              applicantId: 0,
+              jobId: 0,
+              status: '',
+              appliedAt: '',
+            ),
+          );
+          final hasApplied = application.id != 0;
 
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
@@ -786,16 +796,83 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                   ),
                   const SizedBox(height: 12),
                   Text(job.description),
+                  
+                  // Show application status if applied
+                  if (hasApplied) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: application.isPending
+                            ? Colors.orange.shade50
+                            : application.isAccepted
+                                ? Colors.green.shade50
+                                : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: application.isPending
+                              ? Colors.orange
+                              : application.isAccepted
+                                  ? Colors.green
+                                  : Colors.red,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            application.isPending
+                                ? Icons.pending
+                                : application.isAccepted
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                            color: application.isPending
+                                ? Colors.orange
+                                : application.isAccepted
+                                    ? Colors.green
+                                    : Colors.red,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              application.isPending
+                                  ? 'Application Pending Review'
+                                  : application.isAccepted
+                                      ? 'Application Accepted! You are now a worker.'
+                                      : 'Application Rejected',
+                              style: TextStyle(
+                                color: application.isPending
+                                    ? Colors.orange.shade900
+                                    : application.isAccepted
+                                        ? Colors.green.shade900
+                                        : Colors.red.shade900,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: hasApplied || !job.isOpen
+                      onPressed: (hasApplied && !application.isRejected) || !job.isOpen
                           ? null
                           : () => _applyForJob(job),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: (hasApplied && application.isRejected)
+                            ? Colors.orange
+                            : null,
+                      ),
                       child: Text(
                         hasApplied
-                            ? 'Already Applied'
+                            ? application.isRejected
+                                ? 'Reapply'
+                                : application.status.toUpperCase()
                             : job.isOpen
                                 ? 'Apply Now'
                                 : 'Closed',

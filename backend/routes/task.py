@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.task import Task
 from models.user import User
+from models.payment import Payment
 from utils.db import db
 from utils.role_checker import role_required
 from datetime import datetime
@@ -185,6 +186,32 @@ def update_task(task_id):
                     task.approved_at = datetime.utcnow()
                     if 'supervisor_comment' in data:
                         task.supervisor_comment = data['supervisor_comment']
+                    
+                    # Auto-create payment record when task is approved
+                    if data['progress_status'] == 'approved':
+                        worker = User.query.get(task.assigned_to)
+                        if worker and worker.salary:
+                            # Check if payment already exists for this task
+                            existing_payment = Payment.query.filter_by(
+                                task_id=task.id,
+                                worker_id=worker.id
+                            ).first()
+                            
+                            if not existing_payment:
+                                # Create payment with default amount (can be edited by admin)
+                                payment = Payment(
+                                    worker_id=worker.id,
+                                    task_id=task.id,
+                                    amount=worker.salary,  # Default to full salary
+                                    status='unpaid',
+                                    description=f'Payment for task: {task.title}'
+                                )
+                                db.session.add(payment)
+                                
+                                # Update worker's salary balance
+                                if worker.salary_balance is None:
+                                    worker.salary_balance = 0.0
+                                worker.salary_balance += worker.salary
         
         # Admins can update any status
         elif user.role == 'admin':
@@ -196,6 +223,29 @@ def update_task(task_id):
                     task.approved_at = datetime.utcnow()
                     if 'supervisor_comment' in data:
                         task.supervisor_comment = data['supervisor_comment']
+                    
+                    # Auto-create payment record when task is approved by admin
+                    if data['progress_status'] == 'approved':
+                        worker = User.query.get(task.assigned_to)
+                        if worker and worker.salary:
+                            existing_payment = Payment.query.filter_by(
+                                task_id=task.id,
+                                worker_id=worker.id
+                            ).first()
+                            
+                            if not existing_payment:
+                                payment = Payment(
+                                    worker_id=worker.id,
+                                    task_id=task.id,
+                                    amount=worker.salary,
+                                    status='unpaid',
+                                    description=f'Payment for task: {task.title}'
+                                )
+                                db.session.add(payment)
+                                
+                                if worker.salary_balance is None:
+                                    worker.salary_balance = 0.0
+                                worker.salary_balance += worker.salary
         
         # Supervisors/admins can update other fields
         if user.role in ['admin', 'supervisor']:
