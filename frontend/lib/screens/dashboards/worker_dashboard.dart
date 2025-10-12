@@ -727,6 +727,45 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
       ),
       body: Column(
         children: [
+          // Worker Info Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade700, Colors.blue.shade500],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  authProvider.user?.fullName ?? 'Worker',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.business, color: Colors.white70, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      authProvider.user?.departmentName ?? 'No Department',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: _selectedIndex == 0 
                 ? _buildTasksList() 
