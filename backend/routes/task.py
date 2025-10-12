@@ -203,8 +203,7 @@ def update_task(task_id):
                                     worker_id=worker.id,
                                     task_id=task.id,
                                     amount=worker.salary,  # Default to full salary
-                                    status='unpaid',
-                                    description=f'Payment for task: {task.title}'
+                                    status='unpaid'
                                 )
                                 db.session.add(payment)
                                 
@@ -238,8 +237,7 @@ def update_task(task_id):
                                     worker_id=worker.id,
                                     task_id=task.id,
                                     amount=worker.salary,
-                                    status='unpaid',
-                                    description=f'Payment for task: {task.title}'
+                                    status='unpaid'
                                 )
                                 db.session.add(payment)
                                 

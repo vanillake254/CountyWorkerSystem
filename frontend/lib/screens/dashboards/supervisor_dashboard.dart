@@ -632,11 +632,16 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
             TextField(
               controller: commentController,
               decoration: const InputDecoration(
-                labelText: 'Reason (optional)',
+                labelText: 'Reason for Denial *',
                 hintText: 'Explain why the task is denied...',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '* Required field',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
@@ -646,7 +651,15 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              if (commentController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please provide a reason for denial')),
+                );
+                return;
+              }
+              Navigator.pop(context, true);
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Deny'),
           ),

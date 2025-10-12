@@ -70,17 +70,22 @@ def create_application():
                 'message': 'This job is no longer accepting applications'
             }), 400
         
-        # Check if user already applied
+        # Check if user already has a pending or accepted application
         existing = Application.query.filter_by(
             applicant_id=user_id,
             job_id=data['job_id']
         ).first()
         
         if existing:
-            return jsonify({
-                'status': 'error',
-                'message': 'You have already applied for this job'
-            }), 400
+            # Allow reapplication only if previous application was rejected
+            if existing.status != 'rejected':
+                return jsonify({
+                    'status': 'error',
+                    'message': 'You have already applied for this job'
+                }), 400
+            else:
+                # Delete old rejected application and allow new one
+                db.session.delete(existing)
         
         # Create application
         application = Application(
