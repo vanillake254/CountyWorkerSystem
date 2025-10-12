@@ -69,6 +69,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading applications: $e')),
         );
+      }
     }
   }
 
@@ -638,7 +639,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void _filterPayments(String query) {
     setState(() {
       _filteredPayments = _payments.where((payment) {
-        return payment.workerName.toLowerCase().contains(query.toLowerCase()) ||
+        return (payment.workerName?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
             payment.status.toLowerCase().contains(query.toLowerCase());
       }).toList();
     });
@@ -647,8 +648,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void _filterApplications(String query) {
     setState(() {
       _filteredApplications = _applications.where((app) {
-        return app.applicantName.toLowerCase().contains(query.toLowerCase()) ||
-            app.jobTitle.toLowerCase().contains(query.toLowerCase()) ||
+        return (app.applicantName?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
+            (app.jobTitle?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
             app.status.toLowerCase().contains(query.toLowerCase());
       }).toList();
     });
@@ -683,12 +684,41 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
 
     return PopScope(
-      canPop: _selectedIndex == 0,
-      onPopInvoked: (didPop) {
-        if (!didPop && _selectedIndex != 0) {
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        
+        // If not on overview tab, go back to overview
+        if (_selectedIndex != 0) {
           setState(() {
             _selectedIndex = 0;
           });
+          return;
+        }
+        
+        // If on overview tab, show exit confirmation
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Exit App'),
+            content: const Text('Are you sure you want to exit?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Exit'),
+              ),
+            ],
+          ),
+        );
+        
+        if (shouldExit == true && mounted) {
+          // Exit the app
+          Navigator.of(context).pop();
         }
       },
       child: Scaffold(

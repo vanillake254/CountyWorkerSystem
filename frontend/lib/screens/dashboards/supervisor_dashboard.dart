@@ -5,6 +5,7 @@ import '../../models/user.dart' as models;
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/vanilla_branding.dart';
+import '../../widgets/exit_confirmation_wrapper.dart';
 import 'package:intl/intl.dart';
 
 class SupervisorDashboard extends StatefulWidget {
@@ -453,7 +454,8 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
     final authProvider = Provider.of<AuthProvider>(context);
     final departmentName = authProvider.currentUser?.departmentName ?? 'No Department';
 
-    return Scaffold(
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,6 +514,7 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
         onPressed: _showCreateTaskDialog,
         icon: const Icon(Icons.add),
         label: const Text('Assign Task'),
+      ),
       ),
     );
   }

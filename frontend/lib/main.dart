@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login.dart';
+import 'screens/splash_screen.dart';
 import 'screens/dashboards/applicant_dashboard.dart';
 import 'screens/dashboards/worker_dashboard.dart';
 import 'screens/dashboards/supervisor_dashboard.dart';
@@ -47,6 +48,7 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  bool _showSplash = true;
   bool _isChecking = true;
 
   @override
@@ -63,8 +65,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
+  void _onSplashComplete() {
+    setState(() {
+      _showSplash = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Show splash screen first
+    if (_showSplash) {
+      return SplashScreen(onComplete: _onSplashComplete);
+    }
+
     if (_isChecking) {
       return const Scaffold(
         body: Center(

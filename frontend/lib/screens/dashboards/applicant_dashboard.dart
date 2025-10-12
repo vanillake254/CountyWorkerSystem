@@ -5,6 +5,7 @@ import '../../models/application.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/vanilla_branding.dart';
+import '../../widgets/exit_confirmation_wrapper.dart';
 
 class ApplicantDashboard extends StatefulWidget {
   const ApplicantDashboard({super.key});
@@ -308,7 +309,8 @@ class _ApplicantDashboardState extends State<ApplicantDashboard> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
 
-    return Scaffold(
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Applicant Dashboard'),
         actions: [
@@ -372,6 +374,7 @@ class _ApplicantDashboardState extends State<ApplicantDashboard> {
             label: 'My Applications',
           ),
         ],
+      ),
       ),
     );
   }

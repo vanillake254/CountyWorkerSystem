@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/task.dart';
 import '../../models/payment.dart';
-import '../../models/job.dart';
-import '../../models/application.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/vanilla_branding.dart';
-import 'package:intl/intl.dart';
+import '../../widgets/exit_confirmation_wrapper.dart';
 
 class WorkerDashboard extends StatefulWidget {
   const WorkerDashboard({super.key});
-
   @override
   State<WorkerDashboard> createState() => _WorkerDashboardState();
 }
@@ -493,7 +490,8 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
 
-    return Scaffold(
+    return ExitConfirmationWrapper(
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Worker Dashboard'),
         actions: [
@@ -565,6 +563,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
             label: 'Available Jobs',
           ),
         ],
+      ),
       ),
     );
   }
