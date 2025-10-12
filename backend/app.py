@@ -23,16 +23,16 @@ def create_app(config_name='development'):
     # Load configuration
     app.config.from_object(config[config_name])
     
-    # Initialize extensions
+    # Initialize extensions - Allow all origins for mobile app compatibility
     CORS(app, resources={
         r"/*": {
-            "origins": [
-                "https://county-worker-platform.web.app",
-                "https://county-worker-platform.firebaseapp.com",
-                "http://localhost:8080"
-            ]
+            "origins": "*",
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "Accept"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": False
         }
-    }, supports_credentials=True)
+    })
     init_db(app)
     init_jwt(app)
     

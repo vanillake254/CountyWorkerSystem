@@ -33,8 +33,47 @@ class ApiService {
     print('🔑 Token retrieved: ${token != null ? "YES (${token.substring(0, 20)}...)" : "NO"}');
     return {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  // Handle HTTP response with better error handling
+  Map<String, dynamic> _handleResponse(http.Response response) {
+    print('📡 Response status: ${response.statusCode}');
+    
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      try {
+        return jsonDecode(response.body);
+      } catch (e) {
+        print('❌ JSON decode error: $e');
+        return {'status': 'error', 'message': 'Invalid response format'};
+      }
+    } else {
+      try {
+        final errorBody = jsonDecode(response.body);
+        return errorBody;
+      } catch (e) {
+        return {
+          'status': 'error',
+          'message': 'Server error: ${response.statusCode}'
+        };
+      }
+    }
+  }
+
+  // Wrapper for HTTP requests with timeout and error handling
+  Future<Map<String, dynamic>> _makeRequest(
+    Future<http.Response> Function() request,
+    {String operation = 'Request'}
+  ) async {
+    try {
+      final response = await request().timeout(const Duration(seconds: 30));
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ $operation error: $e');
+      return {'status': 'error', 'message': 'Network error: ${e.toString()}'};
+    }
   }
 
   // AUTH ENDPOINTS
@@ -43,58 +82,78 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/signup'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'full_name': fullName,
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/signup'),
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode({
+          'full_name': fullName,
         'email': email,
         'password': password,
       }),
-    );
+      ).timeout(const Duration(seconds: 30));
 
-    return jsonDecode(response.body);
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ Signup error: $e');
+      return {'status': 'error', 'message': 'Network error: $e'};
+    }
   }
 
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
-    print('🔐 Attempting login for: $email');
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
+    try {
+      print('🔐 Attempting login for: $email');
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      ).timeout(const Duration(seconds: 30));
 
-    final result = jsonDecode(response.body);
-    print('📥 Login response: ${result['status']}');
-    if (result['token'] != null) {
-      print('🎫 Token received: ${result['token'].substring(0, 20)}...');
+      final result = _handleResponse(response);
+      print('📥 Login response: ${result['status']}');
+      if (result['token'] != null) {
+        print('🎫 Token received: ${result['token'].substring(0, 20)}...');
+      }
+      return result;
+    } catch (e) {
+      print('❌ Login error: $e');
+      return {'status': 'error', 'message': 'Network error: $e'};
     }
-    return result;
   }
 
   Future<Map<String, dynamic>> getProfile() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/auth/profile'),
-      headers: await _getHeaders(),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/profile'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 30));
 
-    return jsonDecode(response.body);
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ Get profile error: $e');
+      return {'status': 'error', 'message': 'Network error: $e'};
+    }
   }
 
   // JOB ENDPOINTS
   Future<Map<String, dynamic>> getJobs({String status = 'open'}) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/api/jobs?status=$status'),
-      headers: await _getHeaders(),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/jobs?status=$status'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 30));
 
-    return jsonDecode(response.body);
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ Get jobs error: $e');
+      return {'status': 'error', 'message': 'Network error: $e'};
+    }
   }
 
   Future<Map<String, dynamic>> createJob({
