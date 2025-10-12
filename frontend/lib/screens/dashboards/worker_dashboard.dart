@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/task.dart';
 import '../../models/payment.dart';
+import '../../models/job.dart';
+import '../../models/application.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/vanilla_branding.dart';
