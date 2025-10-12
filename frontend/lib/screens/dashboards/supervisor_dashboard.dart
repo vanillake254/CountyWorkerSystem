@@ -465,6 +465,54 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
                                 ],
                               ),
                             ],
+                            
+                            // Show edit/delete buttons for approved or denied tasks
+                            if (task.isApproved || task.isDenied) ...[
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _deleteTask(task),
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      label: const Text('Delete'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => task.isApproved 
+                                          ? _showDenyTaskDialog(task)
+                                          : _approveTask(task),
+                                      icon: Icon(task.isApproved ? Icons.cancel : Icons.check_circle),
+                                      label: Text(task.isApproved ? 'Change to Deny' : 'Change to Approve'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: task.isApproved ? Colors.orange : Colors.green,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            
+                            // Delete button for incomplete tasks
+                            if (task.isIncomplete) ...[
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _deleteTask(task),
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  label: const Text('Delete Task'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -627,6 +675,57 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(response['message'] ?? 'Failed to deny task'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteTask(Task task) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Task'),
+        content: Text('Are you sure you want to delete task "${task.title}"?\n\nThis action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final response = await _apiService.deleteTask(task.id);
+        if (mounted) {
+          if (response['status'] == 'success') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Task deleted successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _loadTasks();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Failed to delete task'),
                 backgroundColor: Colors.red,
               ),
             );
