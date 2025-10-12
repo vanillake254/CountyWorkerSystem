@@ -21,10 +21,10 @@ def initialize_database():
 
         # Create departments
         departments = [
-            Department(name='Human Resources', description='HR Department'),
-            Department(name='Sanitation', description='Sanitation and Waste Management'),
-            Department(name='Public Works', description='Infrastructure and Public Works'),
-            Department(name='Health Services', description='County Health Services')
+            Department(name='Human Resources'),
+            Department(name='Sanitation'),
+            Department(name='Public Works'),
+            Department(name='Health Services')
         ]
         
         for dept in departments:
@@ -75,27 +75,22 @@ def initialize_database():
             db.session.add(user)
 
         # Create sample jobs
-        jobs_data = [
-            {
-                'title': 'Sanitation Worker',
-                'description': 'Responsible for waste collection and street cleaning',
-                'department_id': departments[1].id,
-                'requirements': 'Physical fitness, ability to work outdoors',
-                'salary': 25000.00,
-                'status': 'open'
-            },
-            {
-                'title': 'Road Maintenance Worker',
-                'description': 'Maintain and repair county roads',
-                'department_id': departments[2].id,
-                'requirements': 'Experience in construction or road work',
-                'salary': 30000.00,
-                'status': 'open'
-            }
+        jobs = [
+            Job(
+                title='Sanitation Worker',
+                description='Responsible for waste collection and street cleaning. Physical fitness required.',
+                department_id=departments[1].id,
+                status='open'
+            ),
+            Job(
+                title='Road Maintenance Worker',
+                description='Maintain and repair county roads. Experience in construction or road work preferred.',
+                department_id=departments[2].id,
+                status='open'
+            )
         ]
 
-        for job_data in jobs_data:
-            job = Job(**job_data)
+        for job in jobs:
             db.session.add(job)
 
         db.session.commit()
