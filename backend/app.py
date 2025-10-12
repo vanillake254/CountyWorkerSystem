@@ -14,6 +14,7 @@ from routes.contract import contract_bp
 from routes.payment import payment_bp
 from routes.department import department_bp
 from routes.user import user_bp
+from routes.init import init_bp
 
 def create_app(config_name='development'):
     """Application factory"""
@@ -47,6 +48,7 @@ def create_app(config_name='development'):
     app.register_blueprint(payment_bp, url_prefix='/api')
     app.register_blueprint(department_bp, url_prefix='/api')
     app.register_blueprint(user_bp, url_prefix='/api')
+    app.register_blueprint(init_bp, url_prefix='/api')
     
     # Health check endpoint
     @app.route('/')

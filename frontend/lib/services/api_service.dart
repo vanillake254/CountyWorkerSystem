@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Change this to your backend URL
-  static const String baseUrl = 'http://localhost:5000';
+  static const String baseUrl = 'https://countyworker-system-production.up.railway.app';
 
   // Get stored token
   Future<String?> getToken() async {
