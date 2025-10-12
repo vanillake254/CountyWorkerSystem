@@ -23,6 +23,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
   List<models.User> _users = [];
   bool _isLoading = true;
   int _selectedIndex = 0;
+  
+  // Search controllers
+  final TextEditingController _userSearchController = TextEditingController();
+  final TextEditingController _jobSearchController = TextEditingController();
+  final TextEditingController _paymentSearchController = TextEditingController();
+  final TextEditingController _applicationSearchController = TextEditingController();
+  
+  // Filtered lists
+  List<models.User> _filteredUsers = [];
+  List<Job> _filteredJobs = [];
+  List<Payment> _filteredPayments = [];
+  List<Application> _filteredApplications = [];
 
   @override
   void initState() {
@@ -49,6 +61,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           _applications = (response['applications'] as List)
               .map((app) => Application.fromJson(app))
               .toList();
+          _filteredApplications = _applications;
         });
       }
     } catch (e) {
@@ -56,7 +69,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading applications: $e')),
         );
-      }
     }
   }
 
@@ -68,6 +80,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           _jobs = (response['jobs'] as List)
               .map((job) => Job.fromJson(job))
               .toList();
+          _filteredJobs = _jobs;
         });
       }
     } catch (e) {
@@ -87,6 +100,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           _payments = (response['payments'] as List)
               .map((payment) => Payment.fromJson(payment))
               .toList();
+          _filteredPayments = _payments;
         });
       }
     } catch (e) {
@@ -105,7 +119,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
         setState(() {
           _users = (response['users'] as List)
               .map((user) => models.User.fromJson(user))
+              .where((user) => user.role != 'admin') // Hide admin users
               .toList();
+          _filteredUsers = _users;
         });
         print('✅ Loaded ${_users.length} users');
       }
@@ -384,21 +400,46 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildApplicationsList() {
-    final pendingApps = _applications.where((a) => a.isPending).toList();
+    final pendingApps = _filteredApplications.where((a) => a.isPending).toList();
 
-    if (pendingApps.isEmpty) {
-      return const Center(
-        child: Text('No pending applications'),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadApplications,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: pendingApps.length,
-        itemBuilder: (context, index) {
-          final application = pendingApps[index];
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            controller: _applicationSearchController,
+            decoration: InputDecoration(
+              hintText: 'Search applications by name, job, or status...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _applicationSearchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _applicationSearchController.clear();
+                        _filterApplications('');
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onChanged: _filterApplications,
+          ),
+        ),
+        if (pendingApps.isEmpty)
+          const Expanded(
+            child: Center(child: Text('No pending applications')),
+          )
+        else
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadApplications,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: pendingApps.length,
+                itemBuilder: (context, index) {
+                  final application = pendingApps[index];
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
@@ -493,25 +534,53 @@ class _AdminDashboardState extends State<AdminDashboard> {
           );
         },
       ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildPaymentsList() {
-    final unpaidPayments = _payments.where((p) => p.isUnpaid).toList();
+    final unpaidPayments = _filteredPayments.where((p) => p.isUnpaid).toList();
 
-    if (unpaidPayments.isEmpty) {
-      return const Center(
-        child: Text('No pending payments'),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadPayments,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: unpaidPayments.length,
-        itemBuilder: (context, index) {
-          final payment = unpaidPayments[index];
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            controller: _paymentSearchController,
+            decoration: InputDecoration(
+              hintText: 'Search payments by worker name or status...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _paymentSearchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _paymentSearchController.clear();
+                        _filterPayments('');
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onChanged: _filterPayments,
+          ),
+        ),
+        if (unpaidPayments.isEmpty)
+          const Expanded(
+            child: Center(child: Text('No pending payments')),
+          )
+        else
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadPayments,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: unpaidPayments.length,
+                itemBuilder: (context, index) {
+                  final payment = unpaidPayments[index];
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
@@ -541,7 +610,48 @@ class _AdminDashboardState extends State<AdminDashboard> {
           );
         },
       ),
+            ),
+          ),
+      ],
     );
+  }
+
+  void _filterUsers(String query) {
+    setState(() {
+      _filteredUsers = _users.where((user) {
+        return user.fullName.toLowerCase().contains(query.toLowerCase()) ||
+            user.email.toLowerCase().contains(query.toLowerCase()) ||
+            user.role.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
+  }
+
+  void _filterJobs(String query) {
+    setState(() {
+      _filteredJobs = _jobs.where((job) {
+        return job.title.toLowerCase().contains(query.toLowerCase()) ||
+            job.description.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
+  }
+
+  void _filterPayments(String query) {
+    setState(() {
+      _filteredPayments = _payments.where((payment) {
+        return payment.workerName.toLowerCase().contains(query.toLowerCase()) ||
+            payment.status.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
+  }
+
+  void _filterApplications(String query) {
+    setState(() {
+      _filteredApplications = _applications.where((app) {
+        return app.applicantName.toLowerCase().contains(query.toLowerCase()) ||
+            app.jobTitle.toLowerCase().contains(query.toLowerCase()) ||
+            app.status.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
   }
 
   @override
@@ -572,11 +682,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
         body = _buildDashboardOverview();
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        actions: [
-          IconButton(
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvoked: (didPop) {
+        if (!didPop && _selectedIndex != 0) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Admin Dashboard'),
+          actions: [
+            IconButton(
             icon: const Icon(Icons.lock),
             tooltip: 'Change Password',
             onPressed: _showChangePasswordDialog,
@@ -640,6 +759,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -652,13 +772,39 @@ class _AdminDashboardState extends State<AdminDashboard> {
       return const Center(child: Text('No users found'));
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadUsers,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _users.length,
-        itemBuilder: (context, index) {
-          final user = _users[index];
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            controller: _userSearchController,
+            decoration: InputDecoration(
+              hintText: 'Search users by name, email, or role...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _userSearchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _userSearchController.clear();
+                        _filterUsers('');
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onChanged: _filterUsers,
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadUsers,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _filteredUsers.length,
+              itemBuilder: (context, index) {
+                final user = _filteredUsers[index];
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             child: ListTile(
@@ -728,6 +874,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           );
         },
       ),
+          ),
+        ),
+      ],
     );
   }
 
