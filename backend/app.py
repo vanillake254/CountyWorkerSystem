@@ -67,6 +67,56 @@ def create_app(config_name='development'):
             'database': 'connected'
         }), 200
     
+    # Temporary migration endpoint (REMOVE AFTER MIGRATION)
+    @app.route('/run-migration', methods=['POST'])
+    def run_migration():
+        """Temporary endpoint to run database migration"""
+        try:
+            from sqlalchemy import text
+            
+            # Add salary and salary_balance columns to users table
+            db.session.execute(text("""
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS salary FLOAT
+            """))
+            
+            db.session.execute(text("""
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS salary_balance FLOAT DEFAULT 0.0
+            """))
+            
+            # Add approved_at and supervisor_comment columns to tasks table
+            db.session.execute(text("""
+                ALTER TABLE tasks 
+                ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP
+            """))
+            
+            db.session.execute(text("""
+                ALTER TABLE tasks 
+                ADD COLUMN IF NOT EXISTS supervisor_comment TEXT
+            """))
+            
+            # Update existing workers
+            db.session.execute(text("""
+                UPDATE users 
+                SET salary_balance = COALESCE(salary, 0.0)
+                WHERE role = 'worker' AND salary IS NOT NULL AND salary_balance IS NULL
+            """))
+            
+            db.session.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Database migration completed successfully!'
+            }), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'status': 'error',
+                'message': f'Migration failed: {str(e)}'
+            }), 500
+    
     # Error handlers
     @app.errorhandler(404)
     def not_found(error):
