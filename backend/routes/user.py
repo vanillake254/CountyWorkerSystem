@@ -108,6 +108,13 @@ def update_user(user_id):
         if 'department_id' in data:
             # If user is or will be a supervisor, check if new department already has one
             if user.role == 'supervisor' or (data.get('role') == 'supervisor'):
+                # Check if this supervisor already has a different department
+                if user.role == 'supervisor' and user.department_id and user.department_id != data['department_id']:
+                    return jsonify({
+                        'status': 'error',
+                        'message': 'A supervisor can only be assigned to one department. Please remove from current department first.'
+                    }), 400
+                
                 existing_supervisor = User.query.filter_by(
                     role='supervisor',
                     department_id=data['department_id']

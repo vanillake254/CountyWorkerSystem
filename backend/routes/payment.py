@@ -26,8 +26,8 @@ def get_payments():
         # Admin sees all payments
         if user.role == 'admin':
             payments = Payment.query.all()
-        # Workers see only their own
-        elif user.role == 'worker':
+        # Workers and supervisors see only their own
+        elif user.role in ['worker', 'supervisor']:
             payments = Payment.query.filter_by(worker_id=user_id).all()
         else:
             payments = []
@@ -93,9 +93,9 @@ def create_payment():
                     'message': f'Missing required field: {field}'
                 }), 400
         
-        # Verify worker exists
+        # Verify worker/supervisor exists
         worker = User.query.get(data['worker_id'])
-        if not worker or worker.role != 'worker':
+        if not worker or worker.role not in ['worker', 'supervisor']:
             return jsonify({
                 'status': 'error',
                 'message': 'Invalid worker ID'

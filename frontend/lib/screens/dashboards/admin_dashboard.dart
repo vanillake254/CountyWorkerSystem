@@ -1207,8 +1207,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Text('Role: ${user.role.toUpperCase()}'),
                 const Divider(height: 24),
                 
-                // Salary Management (for workers only)
-                if (user.role == 'worker') ...[
+                // Salary Management (for workers and supervisors)
+                if (user.role == 'worker' || user.role == 'supervisor') ...[
                   const Text(
                     'Salary Management',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -1336,8 +1336,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   const Divider(height: 24),
                 ],
                 
-                // Payment (for workers only)
-                if (user.role == 'worker') ...[
+                // Payment (for workers and supervisors)
+                if (user.role == 'worker' || user.role == 'supervisor') ...[
                   const Text(
                     'Make Payment',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
