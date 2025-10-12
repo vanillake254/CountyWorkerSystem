@@ -41,16 +41,15 @@ class ExitConfirmationWrapper extends StatelessWidget {
       onWillPop: () async {
         if (!canExit) return false;
         
+        // Show dialog and wait for user response
         final shouldExit = await _showExitDialog(context);
+        
+        // Only exit if user confirmed
         if (shouldExit) {
-          // Use platform-specific exit
-          if (Platform.isAndroid) {
-            SystemNavigator.pop();
-          } else if (Platform.isIOS) {
-            exit(0);
-          }
-          return false;
+          SystemNavigator.pop();
         }
+        
+        // Always return false to prevent default back behavior
         return false;
       },
       child: child,
