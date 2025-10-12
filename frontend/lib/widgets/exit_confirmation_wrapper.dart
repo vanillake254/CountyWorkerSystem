@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class ExitConfirmationWrapper extends StatelessWidget {
   final Widget child;
@@ -41,8 +42,9 @@ class ExitConfirmationWrapper extends StatelessWidget {
         
         if (canExit) {
           final shouldExit = await _showExitDialog(context);
-          if (shouldExit && context.mounted) {
-            Navigator.of(context).pop();
+          if (shouldExit) {
+            // Exit the app properly
+            SystemNavigator.pop();
           }
         }
       },
