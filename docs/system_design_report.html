@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>County Worker Recruitment and Management System – System Analysis & Design</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --brand: #0b6efd;
+      --text: #111;
+      --muted: #555;
+      --line: #000;
+    }
+    html, body {
+      background: #fff;
+      color: var(--text);
+      font: 14px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 980px;
+      margin: 40px auto 80px auto;
+      padding: 0 20px;
+    }
+    h1, h2, h3 {
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      color: #0a0a0a;
+    }
+    h1 { font-size: 24px; margin-bottom: 20px; }
+    h2 { font-size: 18px; margin-top: 24px; }
+    p, li { color: var(--text); }
+    .meta {
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .page {
+      page-break-after: always;
+      padding-bottom: 48px;
+      margin-bottom: 48px;
+      border-bottom: 1px solid #eee;
+    }
+    .page:last-child { page-break-after: auto; }
+    .diagram-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 16px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #eaeaea;
+    }
+    /* Thin connector styling for Mermaid */
+    .mermaid .edgePath path { stroke-width: 1px !important; }
+    .mermaid .flowchart-link { stroke-width: 1px !important; }
+    .mermaid .messageLine0 { stroke-width: 1px !important; }
+
+    /* Footer repeated on every printed page */
+    .print-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-top: 1px solid #e5e5e5;
+      background: #fff;
+      color: #444;
+      font-size: 11px;
+      padding: 6px 30px;
+    }
+
+    .toc {
+      background: #f8f9fa;
+      border: 1px solid #eee;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 8px 0 24px 0;
+    }
+
+    @media print {
+      @page { size: A4 portrait; margin: 16mm; }
+      body { margin: 0; }
+      .container { margin: 0 auto; }
+      .page { page-break-after: always; }
+      .print-footer { position: fixed; }
+      a[href]:after { content: ""; }
+    }
+  </style>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      securityLevel: 'loose',
+      flowchart: { curve: 'linear', htmlLabels: true },
+      themeVariables: {
+        lineColor: '#000',
+        primaryBorderColor: '#000',
+        tertiaryColor: '#fff'
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="print-footer">
+    County Worker Recruitment and Management System — Kelvin Barasa (DSE-01-8475/2023) — Zetech University
+  </div>
+  <div class="container">
+    <div class="page">
+      <h1>System Analysis & Design Diagrams</h1>
+      <div class="meta">
+        <div><strong>Project Title:</strong> County Worker Recruitment and Management System</div>
+        <div><strong>Student Name:</strong> Kelvin Barasa</div>
+        <div><strong>Student ID:</strong> DSE-01-8475/2023</div>
+        <div><strong>Institution:</strong> Zetech University</div>
+        <div><strong>System Description:</strong> A digital system that automates county worker registration, task assignment, approvals, payments and reporting across roles: Administrators (HR), Supervisors, and Applicants/Workers.</div>
+      </div>
+      <div class="toc">
+        <strong>Contents</strong>
+        <ol>
+          <li>System Context Diagram</li>
+          <li>Use Case Diagram</li>
+          <li>Data Flow Diagram (Level 0)</li>
+          <li>Data Flow Diagram (Level 1)</li>
+          <li>System Flowchart</li>
+          <li>Entity Relationship Diagram (ERD)</li>
+          <li>Class Diagram</li>
+          <li>System Design Summary</li>
+        </ol>
+      </div>
+      <p style="color:#666">Note: All diagrams are laid out top-down with thin connectors for formal academic presentation.</p>
+    </div>
+
+    <!-- 1. System Context Diagram -->
+    <div class="page">
+      <h2 class="diagram-title">1. System Context Diagram</h2>
+      <div class="mermaid">
+      flowchart TB
+        %% External Actors
+        Admin[(Administrator/HR)]
+        Supervisor[(Supervisor)]
+        Applicant[(Applicant)]
+        Worker[(Worker)]
+
+        %% System Boundary
+        subgraph System[County Worker Recruitment and Management System]
+          direction TB
+          Auth[Authentication & Authorization]
+          JobModule[Jobs & Applications]
+          TaskModule[Task Assignment & Tracking]
+          PaymentModule[Payments]
+          Reporting[Reports & Analytics]
+          DB[(Relational Database)]
+        end
+
+        %% Data Flows
+        Admin -- Manage Departments/Users --> System
+        Admin -- Approve/Reject Applications --> JobModule
+        Admin -- Review Operations --> Reporting
+
+        Supervisor -- Assign/Approve Tasks --> TaskModule
+        Supervisor -- Review Reports --> Reporting
+
+        Applicant -- Register/Login --> Auth
+        Applicant -- Apply for Job --> JobModule
+
+        Worker -- View Tasks/Submit Work --> TaskModule
+        Worker -- View Payments --> PaymentModule
+
+        System -- Stores/Queries --> DB
+      </div>
+    </div>
+
+    <!-- 2. Use Case Diagram (approximated via flowchart) -->
+    <div class="page">
+      <h2 class="diagram-title">2. Use Case Diagram</h2>
+      <div class="mermaid">
+      flowchart TB
+        %% Actors
+        Admin([Admin/HR])
+        Supervisor([Supervisor])
+        Applicant([Applicant])
+        Worker([Worker])
+
+        %% Use Case Container
+        subgraph UseCases[System Use Cases]
+          direction TB
+          UC_Register((Register))
+          UC_Login((Login))
+          UC_Apply((Apply for Job))
+          UC_ViewStatus((View Application Status))
+          UC_Approve((Approve/Reject Application))
+          UC_Assign((Assign Task))
+          UC_ApproveTask((Approve/Reject Task))
+          UC_SubmitReport((Submit Task Report))
+          UC_ViewPayments((View Payments))
+          UC_ProcessPayment((Process Payment))
+          UC_ManageDept((Manage Departments))
+          UC_ManageUsers((Manage Users & Roles))
+        end
+
+        %% Actor to Use Case Links
+        Applicant --> UC_Register
+        Applicant --> UC_Login
+        Applicant --> UC_Apply
+        Applicant --> UC_ViewStatus
+
+        Worker --> UC_Login
+        Worker --> UC_SubmitReport
+        Worker --> UC_ViewPayments
+
+        Supervisor --> UC_Login
+        Supervisor --> UC_Assign
+        Supervisor --> UC_ApproveTask
+
+        Admin --> UC_Login
+        Admin --> UC_Approve
+        Admin --> UC_ProcessPayment
+        Admin --> UC_ManageDept
+        Admin --> UC_ManageUsers
+      </div>
+    </div>
+
+    <!-- 3. Data Flow Diagram (Level 0) -->
+    <div class="page">
+      <h2 class="diagram-title">3. Data Flow Diagram (Level 0)</h2>
+      <div class="mermaid">
+      flowchart TB
+        %% External Entities
+        Admin[(Admin)]
+        Supervisor[(Supervisor)]
+        Applicant[(Applicant)]
+        Worker[(Worker)]
+
+        %% Processes
+        P1[1. Authentication]
+        P2[2. Application Management]
+        P3[3. Task Management]
+        P4[4. Payment Management]
+        P5[5. Reporting]
+
+        %% Data Store
+        D[(Relational Database)]
+
+        %% Flows
+        Applicant -- Credentials --> P1
+        Worker -- Credentials --> P1
+        Supervisor -- Credentials --> P1
+        Admin -- Credentials --> P1
+        P1 -- JWT/Session --> Applicant
+        P1 -- JWT/Session --> Worker
+        P1 -- JWT/Session --> Supervisor
+        P1 -- JWT/Session --> Admin
+
+        Applicant -- Job Application --> P2
+        Admin -- Approve/Reject Decision --> P2
+        P2 -- Application Records --> D
+
+        Supervisor -- Task Assignment/Approval --> P3
+        Worker -- Task Updates/Reports --> P3
+        P3 -- Task Records --> D
+
+        Admin -- Process/Confirm Payment --> P4
+        Worker -- View Payment Status --> P4
+        P4 -- Payment Records --> D
+
+        Admin -- KPIs/Stats --> P5
+        Supervisor -- Performance Reports --> P5
+        P5 -- Aggregates --> D
+      </div>
+    </div>
+
+    <!-- 4. Data Flow Diagram (Level 1) -->
+    <div class="page">
+      <h2 class="diagram-title">4. Data Flow Diagram (Level 1)</h2>
+      <div class="mermaid">
+      flowchart TB
+        subgraph AUTH[Authentication]
+          direction TB
+          A1[Validate Credentials]
+          A2[Issue JWT]
+          A3[Load Role & Profile]
+        end
+
+        subgraph APPS[Applications]
+          direction TB
+          B1[Submit Application]
+          B2[Validate Eligibility]
+          B3[Store Application]
+          B4[Admin Review]
+          B5[Update Status]
+        end
+
+        subgraph TASKS[Tasks]
+          direction TB
+          C1[Create Task]
+          C2[Assign to Worker]
+          C3[Worker Submits Report]
+          C4[Supervisor Approval]
+          C5[Auto-Create Payment Record]
+        end
+
+        subgraph PAY[Payments]
+          direction TB
+          D1[Validate Payment]
+          D2[Mark Paid]
+          D3[Store Payment]
+        end
+
+        DB[(Database)]
+
+        %% AUTH
+        A1 --> A2 --> A3 --> DB
+
+        %% APPLICATIONS
+        B1 --> B2 --> B3 --> DB
+        B3 --> B4 --> B5 --> DB
+
+        %% TASKS
+        C1 --> C2 --> DB
+        C2 --> C3 --> C4 --> DB
+        C4 --> C5 --> DB
+
+        %% PAYMENTS
+        D1 --> D2 --> D3 --> DB
+
+        %% Cross-module triggers
+        B5 -- Accepted --> C1
+        C5 -- Approved --> D1
+      </div>
+    </div>
+
+    <!-- 5. System Flowchart -->
+    <div class="page">
+      <h2 class="diagram-title">5. System Flowchart</h2>
+      <div class="mermaid">
+      flowchart TB
+        Start([Start])
+        Reg{New User?}
+        Register[[Register Account]]
+        Login[[Login]]
+        Role{Route by Role}
+        AppFlow[[Apply for Job]]
+        Review{Admin Approves?}
+        Assign[[Supervisor Assigns Task]]
+        Work[[Worker Performs Task & Submits Report]]
+        ApproveTask{Supervisor Approves?}
+        CreatePay[[Auto-Create Payment Record]]
+        Pay[[Admin Processes Payment]]
+        End([End])
+
+        Start --> Reg
+        Reg -- Yes --> Register --> Login --> Role
+        Reg -- No --> Login --> Role
+
+        Role -- Applicant --> AppFlow --> Review
+        Review -- Yes --> Assign
+        Review -- No --> End
+
+        Role -- Worker --> Work --> ApproveTask
+        ApproveTask -- Yes --> CreatePay --> Pay --> End
+        ApproveTask -- No --> End
+
+        Role -- Supervisor --> Assign --> End
+        Role -- Admin --> Pay --> End
+      </div>
+    </div>
+
+    <!-- 6. Entity Relationship Diagram (ERD) -->
+    <div class="page">
+      <h2 class="diagram-title">6. Entity Relationship Diagram (ERD)</h2>
+      <div class="mermaid">
+      erDiagram
+        USER {
+          int PK id
+          string full_name
+          string email
+          string password_hash
+          string role  "applicant|worker|supervisor|admin"
+          int FK department_id
+          float salary
+        }
+        DEPARTMENT {
+          int PK id
+          string name
+          string description
+        }
+        JOB {
+          int PK id
+          string title
+          string description
+          int FK department_id
+          string status  "open|closed"
+        }
+        APPLICATION {
+          int PK id
+          int FK user_id
+          int FK job_id
+          string status  "pending|accepted|rejected"
+          datetime created_at
+        }
+        TASK {
+          int PK id
+          int FK worker_id
+          int FK supervisor_id
+          int FK department_id
+          string title
+          string description
+          string status  "assigned|submitted|approved|rejected"
+          string report_text
+          datetime created_at
+        }
+        PAYMENT {
+          int PK id
+          int FK worker_id
+          int FK task_id
+          float amount
+          string status  "pending|paid"
+          datetime created_at
+        }
+        CONTRACT {
+          int PK id
+          int FK worker_id
+          int FK department_id
+          int FK job_id
+          date start_date
+          date end_date
+          string status "active|ended"
+        }
+
+        %% Relationships
+        DEPARTMENT ||--o{ USER : houses
+        DEPARTMENT ||--o{ JOB : offers
+        USER ||--o{ APPLICATION : submits
+        JOB ||--o{ APPLICATION : receives
+        USER ||--o{ TASK : assigned
+        USER ||--o{ TASK : supervises
+        TASK ||--o{ PAYMENT : triggers
+        USER ||--o{ PAYMENT : receives
+        DEPARTMENT ||--o{ TASK : contains
+        USER ||--o{ CONTRACT : signs
+        JOB ||--o{ CONTRACT : binds
+        DEPARTMENT ||--o{ CONTRACT : owns
+      </div>
+    </div>
+
+    <!-- 7. Class Diagram (optional) -->
+    <div class="page">
+      <h2 class="diagram-title">7. Class Diagram</h2>
+      <div class="mermaid">
+      classDiagram
+        direction TB
+        class User {
+          +int id
+          +string fullName
+          +string email
+          +string role
+          +int departmentId
+          +float salary
+          +set_password(password)
+          +check_password(password)
+          +to_dict()
+        }
+        class Department {
+          +int id
+          +string name
+          +string description
+          +to_dict()
+        }
+        class Job {
+          +int id
+          +string title
+          +string description
+          +int departmentId
+          +string status
+          +to_dict()
+        }
+        class Application {
+          +int id
+          +int userId
+          +int jobId
+          +string status
+          +datetime createdAt
+          +to_dict()
+        }
+        class Task {
+          +int id
+          +int workerId
+          +int supervisorId
+          +int departmentId
+          +string title
+          +string description
+          +string status
+          +string reportText
+          +datetime createdAt
+          +to_dict()
+        }
+        class Payment {
+          +int id
+          +int workerId
+          +int taskId
+          +float amount
+          +string status
+          +datetime createdAt
+          +to_dict()
+        }
+        class Contract {
+          +int id
+          +int workerId
+          +int departmentId
+          +int jobId
+          +date startDate
+          +date endDate
+          +string status
+          +to_dict()
+        }
+
+        Department "1" --> "*" User : houses
+        Department "1" --> "*" Job : offers
+        User "1" --> "*" Application : submits
+        Job  "1" --> "*" Application : receives
+        User "1" --> "*" Task : assigned
+        User "1" --> "*" Task : supervises
+        Task "1" --> "0..1" Payment : triggers
+        User "1" --> "*" Payment : receives
+        Department "1" --> "*" Task : contains
+        User "1" --> "*" Contract : signs
+        Job  "1" --> "*" Contract : binds
+        Department "1" --> "*" Contract : owns
+      </div>
+    </div>
+
+    <!-- 8. System Design Summary -->
+    <div class="page">
+      <h2 class="diagram-title">8. System Design Summary</h2>
+      <p>
+        This document compiles the key analysis and design views for the County Worker Recruitment and Management System. The
+        <strong>System Context Diagram</strong> presents the high-level boundaries and interactions among external actors and
+        internal modules. The <strong>Use Case Diagram</strong> enumerates the actionable functions available to each role,
+        supporting requirement scoping.
+      </p>
+      <p>
+        The <strong>Data Flow Diagrams (Level 0 and Level 1)</strong> detail how information moves through authentication,
+        application management, task workflow, and payment processing, including validations, storage, and cross-module
+        triggers (e.g., approved tasks auto-creating payment records).
+      </p>
+      <p>
+        The <strong>System Flowchart</strong> captures the operational logic top-down from registration/login to approval,
+        assignment, reporting, and payment completion—directly reflecting the implemented workflows across Administrator,
+        Supervisor, and Worker roles.
+      </p>
+      <p>
+        The <strong>ERD</strong> models persisted data including users, departments, jobs, applications, tasks, payments,
+        and contracts with their primary/foreign keys and cardinalities. The <strong>Class Diagram</strong> expresses the
+        core object structures used across the system and aligns with the backend models (e.g., user password hashing,
+        to_dict() conversion for API responses).
+      </p>
+      <p>
+        Collectively, these views validate the current working implementation and provide a formal, academic-quality
+        specification suitable for presentation and maintenance.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
